@@ -3,6 +3,16 @@ use std::ops::{Add, Neg, AddAssign, MulAssign, DivAssign, Sub, SubAssign, Mul, D
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub struct Vec3(pub f32, pub f32, pub f32);
+pub type Point3 = Vec3;
+pub type Colour = Vec3;
+
+pub fn Point3(x: f32, y: f32, z: f32) -> Point3 {
+    Vec3(x, y, z)
+}
+
+pub fn Colour(x: f32, y: f32, z: f32) -> Colour {
+    Vec3(x, y, z)
+}
 
 impl Vec3 {
     pub const ZERO: Vec3 = Vec3(0.0, 0.0, 0.0);
@@ -132,6 +142,18 @@ impl Mul<Vec3> for f32 {
         v.0 *= self;
         v.1 *= self;
         v.2 *= self;
+        v
+    }
+}
+
+impl Mul<Vec3> for Vec3 {
+    type Output = Vec3;
+
+    fn mul(self, rhs: Vec3) -> Vec3 {
+        let mut v = rhs.clone();
+        v.0 *= self.0;
+        v.1 *= self.1;
+        v.2 *= self.2;
         v
     }
 }
