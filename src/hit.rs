@@ -1,18 +1,22 @@
 use super::Ray;
 use super::{Vec3, Point3, Colour};
-use std::rc::Rc;
 use crate::Material;
+use std::sync::Arc;
 
 pub struct HitRecord {
     pub p: Point3,
     pub normal: Vec3,
     pub t: f32,
     pub front_face: bool,
-    pub material: Rc<dyn Material>,
+    pub material: Arc<dyn Material + Sync>,
 }
 
 impl HitRecord {
-    pub fn new(ray: &Ray, p: Point3, outward_normal: Vec3, t: f32, material: Rc<dyn Material>) -> Self {
+    pub fn new(ray: &Ray,
+               p: Point3,
+               outward_normal: Vec3,
+               t: f32,
+               material: Arc<dyn Material + Sync>) -> Self {
         let front_face = ray.direction.dot(outward_normal) < 0.0;
         let normal = if front_face { outward_normal } else { -outward_normal };
 
@@ -30,14 +34,14 @@ pub trait Hit {
     fn hit(&self, ray: &Ray, t_min: f32, t_max: f32) -> Option<HitRecord>;
 }
 
-pub struct HitList(Vec<Box<dyn Hit>>);
+pub struct HitList(Vec<Box<dyn Hit + Sync + 'static>>);
 
 impl HitList {
     pub fn new() -> Self {
         HitList(Vec::new())
     }
 
-    pub fn add<H: Hit + 'static>(&mut self, obj: H) {
+    pub fn add<H: Hit + 'static + Sync>(&mut self, obj: H) {
         self.0.push(Box::new(obj));
     }
 

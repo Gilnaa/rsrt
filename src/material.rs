@@ -1,6 +1,6 @@
 use crate::{Ray, HitRecord, Vec3, Colour};
 
-pub trait Material {
+pub trait Material: Send {
     fn scatter (&self, ray: &Ray, hit_rec: &HitRecord) -> Option<(Colour, Ray)>;
 }
 

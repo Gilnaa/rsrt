@@ -7,11 +7,11 @@ mod material;
 use vec3::{Vec3, Point3, Colour};
 use hit::{HitRecord, Hit, HitList};
 use material::{Material, Metal, Lambertian};
-use std::rc::Rc;
+use std::sync::Arc;
 
 
 const ASPECT_RATIO: f32 = 16.0 / 9.0;
-const IMAGE_WIDTH: usize = 1024;
+const IMAGE_WIDTH: usize = 384;
 const IMAGE_HEIGHT: usize = (IMAGE_WIDTH as f32 / ASPECT_RATIO) as usize;
 
 const VIEWPORT_HEIGHT: f32 = 2.0;
@@ -75,7 +75,7 @@ impl Ray {
 struct Sphere {
     center: Point3,
     radius: f32,
-    material: Rc<dyn Material>,
+    material: Arc<dyn Material + 'static + Sync>,
 }
 
 impl Hit for Sphere {
@@ -166,11 +166,13 @@ fn main() {
     let world = {
         let mut world = HitList::new();
 
-        let bg_material = Rc::new(Lambertian::new(Colour::UNIT / 2.0 + Colour::Y / 2.0));
+        let bg_material = Arc::new(Lambertian::new(Colour::UNIT / 2.0 + Colour::Y / 2.0));
 
-        let default_material = Rc::new(Lambertian::new(Colour::X));
+        let default_material = Arc::new(Lambertian::new(Colour::X));
 
-        let metal_material = Rc::new(Metal::new(Colour::UNIT * 0.8, 0.3));
+        let metal_material0 = Arc::new(Metal::new(Colour::UNIT * 0.8, 0.0));
+        let metal_material1 = Arc::new(Metal::new(Colour::UNIT * 0.8, 0.3));
+        let metal_material2 = Arc::new(Metal::new(Colour::UNIT * 0.8, 0.8));
 
         world.add(Sphere {
             center: Vec3(0f32, -100.5f32, -1f32),
@@ -179,33 +181,49 @@ fn main() {
         });
 
         world.add(Sphere {
-            center: Vec3(0f32, 0f32, -1.5f32),
+            center: Vec3(0f32, 0.2f32, -1.5f32),
             radius: 0.5,
             material: default_material.clone(),
         });
 
         world.add(Sphere {
-            center: Vec3(0f32, 1f32, -1.5f32),
+            center: Vec3(0f32, 1.2f32, -1.5f32),
             radius: 0.5,
-            material: metal_material.clone(),
+            material: metal_material0,
         });
 
         world.add(Sphere {
-            center: Vec3(1f32, 0f32, -1.5f32),
+            center: Vec3(1f32, 0.2f32, -1.5f32),
             radius: 0.5,
-            material: metal_material.clone(),
+            material: metal_material1,
         });
 
         world.add(Sphere {
-            center: Vec3(-1f32, 0f32, -1.5f32),
+            center: Vec3(-1f32, 0.2f32, -1.5f32),
             radius: 0.5,
-            material: metal_material,
+            material: metal_material2,
         });
 
         world
     };
 
     const SAMPLES_PER_PIXELS: usize = 250;
+
+    let mut frame = [[Colour::ZERO; IMAGE_WIDTH]; IMAGE_HEIGHT];
+
+    // use rayon::prelude::*;
+    // (&mut frame[..]).par_iter_mut().enumerate().for_each(|(idx, r)| {
+    //     for i in 0..IMAGE_WIDTH {
+    //         let mut pixel_color = Vec3::ZERO;
+    //         for _ in 0..SAMPLES_PER_PIXELS {
+    //             let u = (i as f32 + random_double()) / (IMAGE_WIDTH - 1) as f32;
+    //             let v = (idx as f32 + random_double()) / (IMAGE_HEIGHT - 1) as f32;
+    //             let r = camera.get_ray(u, v);
+    //             pixel_color += r.colour(&world, 100);
+    //         }
+    //         r[i] = pixel_color;
+    //     }
+    // });
 
     for j in (0..IMAGE_HEIGHT).rev() {
         for i in 0..IMAGE_WIDTH {
@@ -217,7 +235,15 @@ fn main() {
                 pixel_color += r.colour(&world, 100);
             }
 
-            write_colour(pixel_color, SAMPLES_PER_PIXELS);
+            frame[j][i] = pixel_color;
         }
     }
+
+    for j in (0..IMAGE_HEIGHT).rev() {
+        for i in 0..IMAGE_WIDTH {
+            write_colour(frame[j][i], SAMPLES_PER_PIXELS);
+        }
+    }
+
+
 }
